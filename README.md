@@ -8,7 +8,8 @@ results.
 
 Note that there could be differences between these results and what Hardrock
 publishes. It depends on how many simulation runs you do, but also it depends on
-what picks the RD uses and what pools those end up coming from.
+what picks the RD uses and what pools those end up coming from, and whether the
+preliminary ticket numbers end up changing.
 
 This does not factor in your odds of getting onto the waitlist, just your odds
 of getting selected into the original list of starters.
