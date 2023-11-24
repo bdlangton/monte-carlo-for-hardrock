@@ -32,6 +32,8 @@ You could also start up `irb` and run it that way:
 ```
 load 'monte_carlo.rb'
 mc = MonteCarlo.new(<num-of-simulations>)
+mc.run_simulations
+mc.calculate_odds
 ```
 
 ## Entrants
