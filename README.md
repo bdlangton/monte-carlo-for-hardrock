@@ -1,5 +1,8 @@
 # Monte Carlo simulation for the Hardrock 100
 
+See my [Western States simulation
+here](https://github.com/bdlangton/monte-carlo-for-western-states).
+
 Run simulations to calculate your odds of getting into the lottery. This is the
 same method used by Hardrock
 [themselves](https://www.hardrock100.com/files/entrants/HR100-2023-Lottery-Odds.pdf)
