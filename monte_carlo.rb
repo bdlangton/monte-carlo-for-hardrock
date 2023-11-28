@@ -6,15 +6,15 @@ class MonteCarlo
 
   def initialize(simulations = 1000)
     @simulations = simulations
-    @total_picks = 140
+    @total_picks = 146
 
     @entrants = {
       "men finished 2" => 37,
       "men finished 3" => 46,
       "men finished 4" => 40,
       "men finished 5" => 25,
-      "men finished 6" => 20,
-      "men finished 7" => 16,
+      "men finished 6" => 19,
+      "men finished 7" => 17,
       "men finished 8" => 7,
       "men finished 9" => 6,
       "men finished 10" => 6,
@@ -23,15 +23,15 @@ class MonteCarlo
       "men finished 13" => 1,
       "men finished 15" => 3,
       "men finished 19" => 2,
-      "men never 1" => 703,
+      "men never 1" => 702,
       "men never 2" => 542,
-      "men never 4" => 328,
+      "men never 4" => 327,
       "men never 8" => 134,
       "men never 16" => 114,
-      "men never 32" => 84,
+      "men never 32" => 85,
       "men never 64" => 50,
       "men never 128" => 24,
-      "men never 256" => 19,
+      "men never 256" => 18,
       "men never 512" => 7,
       "men never 2048" => 1,
       "women finished 2" => 12,
@@ -47,7 +47,7 @@ class MonteCarlo
       "women never 4" => 85,
       "women never 8" => 22,
       "women never 16" => 28,
-      "women never 32" => 16,
+      "women never 32" => 15,
       "women never 64" => 19,
       "women never 128" => 7,
       "women never 256" => 4,
@@ -168,18 +168,32 @@ class MonteCarlo
       "never" => (@total_picks / 2).floor,
     }
 
-    @total_finished = @women_finished = 0
-    @total_never = @women_never = 0
+    total_finished = women_finished = 0.0
+    total_never = women_never = 0.0
     @entrants.each do |key, val|
-      @total_finished += val if key.include?("finished")
-      @women_finished += val if key.start_with?("women finished")
-      @total_never += val if key.include?("never")
-      @women_never += val if key.start_with?("women never")
+      total_finished += val if key.include?("finished")
+      women_finished += val if key.start_with?("women finished")
+      total_never += val if key.include?("never")
+      women_never += val if key.start_with?("women never")
     end
 
+    # Total entrants and total womaen entrants
+    total = total_finished + total_never
+    total_women = women_finished + women_never
+
+    # Percentage of women in each division
+    women_finished_percentage = women_finished / total_finished
+    women_never_percentage = women_never / total_never
+
+    # Women to select is the percentage of total entrants that are women times the picks to be made
+    women_to_select = (@total_picks * (total_women / total).round(2)).round
+
+    # Now we know how many women to select, divide them up amongst finishers and nevers based on those percentages (if there is a higher percentage of
+    # women nevers in the total pool of nevers vs the percentage of women finishers in the pool of finishers, then more women nevers will be picked
+    # than women finishers.
     @women_minimums = {
-      "finished" => (@available_spots["finished"] * @women_finished / @total_finished).round,
-      "never" => (@available_spots["never"] * @women_never / @total_never).round,
+      "finished" => (women_to_select * women_finished_percentage / (women_finished_percentage + women_never_percentage)).round,
+      "never" => (women_to_select * women_never_percentage / (women_never_percentage + women_finished_percentage)).round,
     }
   end
 
