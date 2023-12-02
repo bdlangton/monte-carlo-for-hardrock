@@ -11,5 +11,8 @@ mc = MonteCarlo.new(simulations)
 mc.run_simulations
 mc.calculate_odds
 
-puts "Average selections: #{mc.averages}"
-puts "Odds: #{mc.odds}"
+puts "Average selections"
+pp mc.averages
+
+puts "\nOdds"
+pp mc.odds

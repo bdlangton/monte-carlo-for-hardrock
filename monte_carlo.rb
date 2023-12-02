@@ -6,7 +6,7 @@ class MonteCarlo
 
   def initialize(simulations = 1000)
     @simulations = simulations
-    @total_picks = 146
+    @total_picks = 144
 
     @entrants = {
       "men finished 2" => 37,
@@ -68,6 +68,7 @@ class MonteCarlo
       picks_left = @total_picks
       spots_left = Marshal.load(Marshal.dump(@available_spots))
       women_spots_required = Marshal.load(Marshal.dump(@women_minimums))
+      men_have_been_removed = false
 
       while picks_left > 0 do
         # Select a random ticket and verify it is selectable (accounting for women selected and divisions selected)
@@ -108,6 +109,14 @@ class MonteCarlo
         end
 
         picks_left -= 1
+
+        # Remove all men from the pool if we're at the point where only women can be selected
+        if !men_have_been_removed && picks_left <= women_picks_left
+          tickets_left = tickets_left.reject do |ticket_no, ticket_type|
+            ticket_type.start_with? "men"
+          end
+          men_have_been_removed = true
+        end
       end
     end
   end
