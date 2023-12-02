@@ -53,6 +53,8 @@ class MonteCarlo
       "women never 256" => 4,
     }
 
+    @divisions = ["never", "finished"]
+
     set_all_tickets
     set_totals_and_minimums
 
@@ -68,32 +70,33 @@ class MonteCarlo
       picks_left = @total_picks
       spots_left = Marshal.load(Marshal.dump(@available_spots))
       women_spots_required = Marshal.load(Marshal.dump(@women_minimums))
-      men_have_been_removed = false
+      men_have_been_removed = {
+        "never" => false,
+        "finished" => false
+      }
 
       while picks_left > 0 do
         # Select a random ticket and verify it is selectable (accounting for women selected and divisions selected)
         while true do
           chosen = tickets_left[tickets_left.keys.sample]
-          if chosen.include?("never") && spots_left["never"] > 0
-            if chosen.start_with? "women"
-              spots_left["never"] -= 1
-              women_spots_required["never"] -= 1
-              break
-            elsif spots_left["never"] > women_spots_required["never"]
-              spots_left["never"] -= 1
-              break
+          found = false
+          @divisions.each do |division|
+            if chosen.include?(division) && spots_left[division] > 0
+              # The second condition is assuming the women's minimum is actually a hard stop which seems to make the odds align more with what
+              # Hardrock publishes. I thought it was more of "at least this many women must be selected" but maybe it isn't.
+              if chosen.start_with?("women") && women_spots_required[division] > 0
+                spots_left[division] -= 1
+                women_spots_required[division] -= 1
+                found = true
+                break
+              elsif spots_left[division] > women_spots_required[division]
+                spots_left[division] -= 1
+                found = true
+                break
+              end
             end
           end
-          if chosen.include?("finished") && spots_left["finished"] > 0
-            if chosen.start_with? "women"
-              spots_left["finished"] -= 1
-              women_spots_required["finished"] -= 1
-              break
-            elsif spots_left["finished"] > women_spots_required["finished"]
-              spots_left["finished"] -= 1
-              break
-            end
-          end
+          break if found
         end
         @selected_entrants[chosen] += 1
 
@@ -111,11 +114,13 @@ class MonteCarlo
         picks_left -= 1
 
         # Remove all men from the pool if we're at the point where only women can be selected
-        if !men_have_been_removed && picks_left <= women_picks_left
-          tickets_left = tickets_left.reject do |ticket_no, ticket_type|
-            ticket_type.start_with? "men"
+        men_have_been_removed.each do |division, val|
+          if !val && spots_left[division] <= women_spots_required[division]
+            tickets_left = tickets_left.reject do |ticket_no, ticket_type|
+              ticket_type.start_with? "men #{division}"
+            end
+            men_have_been_removed[division] = true
           end
-          men_have_been_removed = true
         end
       end
     end
@@ -199,10 +204,11 @@ class MonteCarlo
 
     # Now we know how many women to select, divide them up amongst finishers and nevers based on those percentages (if there is a higher percentage of
     # women nevers in the total pool of nevers vs the percentage of women finishers in the pool of finishers, then more women nevers will be picked
-    # than women finishers.
+    # than women finishers. Hardrock has a way of dividing up the women here that I can't figure out but this gets us close at least.
+    women_finished_to_select = (women_to_select * women_finished_percentage / (women_finished_percentage + women_never_percentage)).round
     @women_minimums = {
-      "finished" => (women_to_select * women_finished_percentage / (women_finished_percentage + women_never_percentage)).round,
-      "never" => (women_to_select * women_never_percentage / (women_never_percentage + women_finished_percentage)).round,
+      "finished" => women_finished_to_select,
+      "never" => women_to_select - women_finished_to_select,
     }
   end
 
