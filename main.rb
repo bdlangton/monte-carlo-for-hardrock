@@ -14,5 +14,11 @@ mc.calculate_odds
 puts "Average selections"
 pp mc.averages
 
+puts "\nWomen minimums"
+pp mc.women_minimums
+
+puts "\nSelected totals"
+pp mc.print_selected_entrants
+
 puts "\nOdds"
 pp mc.odds

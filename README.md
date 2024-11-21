@@ -38,6 +38,5 @@ mc.calculate_odds
 
 ## Entrants
 
-Entrant counts are hardcoded in `monte_carlo.rb` so make sure those are updated
-before running simulations. Previous year values are on [tagged
-commits](https://github.com/bdlangton/monte-carlo-for-hardrock/tags).
+Entrant counts are hardcoded in JSON files in the `years` folder, so make sure
+those are updated before running simulations.

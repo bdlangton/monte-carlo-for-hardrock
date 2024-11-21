@@ -1,57 +1,17 @@
+require 'json'
+
 class MonteCarlo
   attr_reader :entrants
   attr_reader :selected_entrants
   attr_reader :averages
   attr_reader :odds
+  attr_reader :women_minimums
 
   def initialize(simulations = 1000)
     @simulations = simulations
     @total_picks = 144
 
-    @entrants = {
-      "men finished 2" => 37,
-      "men finished 3" => 46,
-      "men finished 4" => 40,
-      "men finished 5" => 25,
-      "men finished 6" => 19,
-      "men finished 7" => 17,
-      "men finished 8" => 7,
-      "men finished 9" => 6,
-      "men finished 10" => 6,
-      "men finished 11" => 3,
-      "men finished 12" => 1,
-      "men finished 13" => 1,
-      "men finished 15" => 3,
-      "men finished 19" => 2,
-      "men never 1" => 702,
-      "men never 2" => 542,
-      "men never 4" => 327,
-      "men never 8" => 134,
-      "men never 16" => 114,
-      "men never 32" => 85,
-      "men never 64" => 50,
-      "men never 128" => 24,
-      "men never 256" => 18,
-      "men never 512" => 7,
-      "men never 2048" => 1,
-      "women finished 2" => 12,
-      "women finished 3" => 6,
-      "women finished 4" => 4,
-      "women finished 5" => 5,
-      "women finished 6" => 2,
-      "women finished 7" => 1,
-      "women finished 8" => 1,
-      "women finished 20" => 1,
-      "women never 1" => 223,
-      "women never 2" => 144,
-      "women never 4" => 85,
-      "women never 8" => 22,
-      "women never 16" => 28,
-      "women never 32" => 15,
-      "women never 64" => 19,
-      "women never 128" => 7,
-      "women never 256" => 4,
-    }
+    @entrants = JSON.parse(File.read("years/2024.json"))
 
     @divisions = ["never", "finished"]
 
