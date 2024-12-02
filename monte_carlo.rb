@@ -11,7 +11,7 @@ class MonteCarlo
     @simulations = simulations
     @total_picks = 144
 
-    @entrants = JSON.parse(File.read("years/2024.json"))
+    @entrants = JSON.parse(File.read("years/2025.json"))
 
     @divisions = ["never", "finished"]
 
@@ -23,7 +23,16 @@ class MonteCarlo
   end
 
   def run_simulations
-    puts "Running #{@simulations} simulations"
+    count = @entrants.inject(0) {|sum,n| sum + n[1]}
+    women_count = @entrants.inject(0) do |sum,n|
+      if n[0].include?("women")
+        sum + n[1]
+      else
+        sum
+      end
+    end
+
+    puts "Running #{@simulations} simulations for #{count} entrants, #{women_count} women"
 
     @simulations.times do
       tickets_left = Marshal.load(Marshal.dump(@all_tickets))
