@@ -32,7 +32,8 @@ class MonteCarlo
       end
     end
 
-    puts "Running #{@simulations} simulations for #{count} entrants, #{women_count} women"
+    puts "Running #{@simulations} simulations"
+    puts "Entrant Data: #{count} entrants (#{women_count} women) and #{@all_tickets.size} tickets for #{@total_picks} spots"
 
     @simulations.times do
       tickets_left = Marshal.load(Marshal.dump(@all_tickets))
