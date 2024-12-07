@@ -9,9 +9,18 @@ class MonteCarlo
 
   def initialize(simulations = 1000)
     @simulations = simulations
-    @total_picks = 144
 
-    @entrants = JSON.parse(File.read("years/2025.json"))
+    json_data = JSON.parse(File.read("years/2025.json"))
+    @entrants = json_data["entrants"]
+    @dale_picks = json_data["dale_picks"]
+    @total_picks = json_data["total_picks"] - @dale_picks
+
+    # Assume 2/3 Dale's picks are nevers, the rest are finishers.
+    @available_spots = {
+      "finished" => json_data["finished_spots"] - (@dale_picks / 3.0).ceil,
+      "never" => json_data["never_spots"] - (@dale_picks / 1.5).floor,
+    }
+
 
     @divisions = ["never", "finished"]
 
@@ -39,7 +48,13 @@ class MonteCarlo
       tickets_left = Marshal.load(Marshal.dump(@all_tickets))
       picks_left = @total_picks
       spots_left = Marshal.load(Marshal.dump(@available_spots))
-      women_spots_required = Marshal.load(Marshal.dump(@women_minimums))
+      women_spots_left = Marshal.load(Marshal.dump(@women_minimums))
+
+      # Assume Dale picks one woman finisher and two women nevers for his picks
+      # Assume Dale picks half women, then of those 2/3 are nevers, the rest are finishers.
+      women_spots_left["finished"] -= ((@dale_picks / 2.0) / 3.0).ceil
+      women_spots_left["never"] -= ((@dale_picks / 2.0) / 1.5).floor
+
       men_have_been_removed = {
         "never" => false,
         "finished" => false
@@ -54,12 +69,12 @@ class MonteCarlo
             if chosen.include?(division) && spots_left[division] > 0
               # The second condition is assuming the women's minimum is actually a hard stop which seems to make the odds align more with what
               # Hardrock publishes. I thought it was more of "at least this many women must be selected" but maybe it isn't.
-              if chosen.start_with?("women") && women_spots_required[division] > 0
+              if chosen.start_with?("women") && women_spots_left[division] > 0
                 spots_left[division] -= 1
-                women_spots_required[division] -= 1
+                women_spots_left[division] -= 1
                 found = true
                 break
-              elsif spots_left[division] > women_spots_required[division]
+              elsif spots_left[division] > women_spots_left[division]
                 spots_left[division] -= 1
                 found = true
                 break
@@ -85,7 +100,7 @@ class MonteCarlo
 
         # Remove all men from the pool if we're at the point where only women can be selected
         men_have_been_removed.each do |division, val|
-          if !val && spots_left[division] <= women_spots_required[division]
+          if !val && spots_left[division] <= women_spots_left[division]
             tickets_left = tickets_left.reject do |ticket_no, ticket_type|
               ticket_type.start_with? "men #{division}"
             end
@@ -146,12 +161,6 @@ class MonteCarlo
   end
 
   def set_totals_and_minimums
-    # Use ceil and floor just in case an odd number of entrants is supplied but it should be split evenly
-    @available_spots = {
-      "finished" => (@total_picks / 2).ceil,
-      "never" => (@total_picks / 2).floor,
-    }
-
     total_finished = women_finished = 0.0
     total_never = women_never = 0.0
     @entrants.each do |key, val|
@@ -161,7 +170,7 @@ class MonteCarlo
       women_never += val if key.start_with?("women never")
     end
 
-    # Total entrants and total womaen entrants
+    # Total entrants and total women entrants
     total = total_finished + total_never
     total_women = women_finished + women_never
 
@@ -170,7 +179,7 @@ class MonteCarlo
     women_never_percentage = women_never / total_never
 
     # Women to select is the percentage of total entrants that are women times the picks to be made
-    women_to_select = (@total_picks * (total_women / total).round(2)).round
+    women_to_select = (((@total_picks + @dale_picks) * (100.0 * total_women / total).ceil) / 100.0).round
 
     # Now we know how many women to select, divide them up amongst finishers and nevers based on those percentages (if there is a higher percentage of
     # women nevers in the total pool of nevers vs the percentage of women finishers in the pool of finishers, then more women nevers will be picked
