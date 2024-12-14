@@ -14,11 +14,13 @@ class MonteCarlo
     @entrants = json_data["entrants"]
     @dale_picks = json_data["dale_picks"]
     @total_picks = json_data["total_picks"] - @dale_picks
+    @finished_spots = json_data["finished_spots"]
+    @never_spots = json_data["never_spots"]
 
     # Assume 2/3 Dale's picks are nevers, the rest are finishers.
     @available_spots = {
-      "finished" => json_data["finished_spots"] - (@dale_picks / 3.0).ceil,
-      "never" => json_data["never_spots"] - (@dale_picks / 1.5).floor,
+      "finished" => @finished_spots - (@dale_picks / 3.0).ceil,
+      "never" => @never_spots - (@dale_picks / 1.5).floor,
     }
 
 
@@ -46,42 +48,48 @@ class MonteCarlo
 
     @simulations.times do
       tickets_left = Marshal.load(Marshal.dump(@all_tickets))
+
       picks_left = @total_picks
-      spots_left = Marshal.load(Marshal.dump(@available_spots))
       women_spots_left = Marshal.load(Marshal.dump(@women_minimums))
+      men_spots_left = Marshal.load(Marshal.dump(@men_minimums))
 
       # Assume Dale picks one woman finisher and two women nevers for his picks
       # Assume Dale picks half women, then of those 2/3 are nevers, the rest are finishers.
-      women_spots_left["finished"] -= ((@dale_picks / 2.0) / 3.0).ceil
-      women_spots_left["never"] -= ((@dale_picks / 2.0) / 1.5).floor
-
-      men_have_been_removed = {
-        "never" => false,
-        "finished" => false
+      spots_left = {
+        "women finished" => women_spots_left["finished"] - ((@dale_picks / 2.0) / 3.0).ceil,
+        "women never" => women_spots_left["never"] - ((@dale_picks / 2.0) / 1.5).floor,
+        "men finished" => men_spots_left["finished"] - ((@dale_picks / 2.0) / 3.0).ceil,
+        "men never" => men_spots_left["never"] - ((@dale_picks / 2.0) / 1.5).floor,
       }
 
       while picks_left > 0 do
         # Select a random ticket and verify it is selectable (accounting for women selected and divisions selected)
         while true do
           chosen = tickets_left[tickets_left.keys.sample]
-          found = false
+          found = nil
           @divisions.each do |division|
-            if chosen.include?(division) && spots_left[division] > 0
-              # The second condition is assuming the women's minimum is actually a hard stop which seems to make the odds align more with what
-              # Hardrock publishes. I thought it was more of "at least this many women must be selected" but maybe it isn't.
-              if chosen.start_with?("women") && women_spots_left[division] > 0
-                spots_left[division] -= 1
-                women_spots_left[division] -= 1
-                found = true
+            if chosen.include?(division)
+              if chosen.start_with?("women")
+                spots_left["women " + division] -= 1
+                found = "women " + division
                 break
-              elsif spots_left[division] > women_spots_left[division]
-                spots_left[division] -= 1
-                found = true
+              elsif chosen.start_with?("men")
+                spots_left["men " + division] -= 1
+                found = "men " + division
                 break
               end
             end
           end
-          break if found
+
+          # If found, check if we need to remove tickets from that division, then break from loop
+          if found
+            if spots_left[found] == 0
+              tickets_left = tickets_left.reject do |ticket_no, ticket_type|
+                ticket_type.start_with?(found)
+              end
+            end
+            break
+          end
         end
         @selected_entrants[chosen] += 1
 
@@ -97,16 +105,6 @@ class MonteCarlo
         end
 
         picks_left -= 1
-
-        # Remove all men from the pool if we're at the point where only women can be selected
-        men_have_been_removed.each do |division, val|
-          if !val && spots_left[division] <= women_spots_left[division]
-            tickets_left = tickets_left.reject do |ticket_no, ticket_type|
-              ticket_type.start_with? "men #{division}"
-            end
-            men_have_been_removed[division] = true
-          end
-        end
       end
     end
   end
@@ -188,6 +186,10 @@ class MonteCarlo
     @women_minimums = {
       "finished" => women_finished_to_select,
       "never" => women_to_select - women_finished_to_select,
+    }
+    @men_minimums = {
+      "finished" => @finished_spots - women_finished_to_select,
+      "never" => @never_spots - (women_to_select - women_finished_to_select),
     }
   end
 
